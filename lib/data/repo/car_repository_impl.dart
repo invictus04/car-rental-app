@@ -13,4 +13,10 @@ class CarRepositoryImpl implements CarRepository {
     return firebaseCarDataSource.getCars();
   }
 
+  @override
+  Future<bool> addCars(Car car) {
+    return firebaseCarDataSource.addCars(car);
+  }
+
+
 }

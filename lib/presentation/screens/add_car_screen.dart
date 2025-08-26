@@ -1,4 +1,10 @@
+import 'package:car_rental/presentation/bloc/car_bloc.dart';
+import 'package:car_rental/presentation/bloc/car_state.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+
+import '../../data/models/car.dart';
+import '../bloc/car_event.dart';
 
 class AddCarScreen extends StatelessWidget {
   AddCarScreen({super.key});
@@ -14,68 +20,160 @@ class AddCarScreen extends StatelessWidget {
     final screenWidth = MediaQuery.of(context).size.width;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          'Add Cars',
-          style: TextStyle(fontWeight: FontWeight.bold),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xff1F1F1F), Color(0xffF2F3F3)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
         ),
-        centerTitle: true,
-      ),
-      body: SingleChildScrollView(
-        padding: EdgeInsets.all(screenWidth * 0.05),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildField("Model", modelController, context),
-            SizedBox(height: screenHeight * 0.02),
+        child: SafeArea(
+          child: BlocListener<CarBloc, CarState>(
+            listener: (context, state) {
+              if (state is CarAdded ) {
+                modelController.clear();
+                distanceController.clear();
+                fuelController.clear();
+                priceController.clear();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                      content: Text("✅ Car Added Successfully!")),
+                );
+              } else if (state is CarError) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                      content: Text("❌ Something went wrong")),
+                );
+              }
+            },
+            child: SingleChildScrollView(
+              padding: EdgeInsets.all(screenWidth * 0.06),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    "🚗 Add New Car",
+                    style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
 
-            _buildField("Distance", distanceController, context),
-            SizedBox(height: screenHeight * 0.02),
+                  _buildField("Model", modelController, Icons.directions_car),
+                  SizedBox(height: screenHeight * 0.02),
 
-            _buildField("Fuel Capacity", fuelController, context),
-            SizedBox(height: screenHeight * 0.02),
+                  _buildField(
+                      "Distance (km)", distanceController, Icons.speed),
+                  SizedBox(height: screenHeight * 0.02),
 
-            _buildField("Price Per Hour", priceController, context),
-            SizedBox(height: screenHeight * 0.04),
+                  _buildField("Fuel Capacity (L)", fuelController,
+                      Icons.local_gas_station),
+                  SizedBox(height: screenHeight * 0.02),
 
-            Center(
-              child: ElevatedButton(
-                onPressed: () {
-                  // Handle Save
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text("Car Added Successfully!")),
-                  );
-                },
-                child: const Text("Save"),
+                  _buildField("Price Per Hour", priceController,
+                      Icons.attach_money),
+                  SizedBox(height: screenHeight * 0.04),
+
+                  Center(
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 40, vertical: 15),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(30),
+                        ),
+                        backgroundColor: Colors.transparent,
+                        shadowColor: Colors.transparent,
+                      ).merge(
+                        ButtonStyle(
+                          backgroundColor: MaterialStateProperty.all(
+                            Colors.transparent,
+                          ),
+                          elevation: MaterialStateProperty.all(0),
+                          overlayColor: MaterialStateProperty.all(
+                            Colors.white.withOpacity(0.1),
+                          ),
+                        ),
+                      ),
+                      onPressed: () {
+                        if (modelController.text.trim().isEmpty ||
+                            distanceController.text.trim().isEmpty ||
+                            fuelController.text.trim().isEmpty ||
+                            priceController.text.trim().isEmpty) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text("⚠️ Please fill in all fields before saving."),
+                            ),
+                          );
+                          return;
+                        }
+                        final car = Car(
+                          model: modelController.text,
+                          distance: double.tryParse(
+                              distanceController.text.trim()) ??
+                              0,
+                          fuelCapacity: double.tryParse(
+                              fuelController.text.trim()) ??
+                              0,
+                          pricePerHour: double.tryParse(
+                              priceController.text.trim()) ??
+                              0,
+                        );
+
+                        context.read<CarBloc>().add(AddCar(car));
+                      },
+                      child: Ink(
+                        decoration: BoxDecoration(
+                          color: Colors.black45,
+                          borderRadius: BorderRadius.circular(30),
+                        ),
+                        child: Container(
+                          width: 250,
+                          height: 50,
+                          alignment: Alignment.center,
+                          child: const Text(
+                            "Save Car",
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            )
-          ],
+            ),
+          ),
         ),
       ),
     );
   }
 
   Widget _buildField(
-      String label, TextEditingController controller, BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-
-    return Row(
-      children: [
-        SizedBox(
-          width: screenWidth * 0.3,
-          child: Text(label, style: const TextStyle(fontSize: 16)),
-        ),
-        Expanded(
-          child: TextField(
-            controller: controller,
-            decoration: InputDecoration(
-              border: const OutlineInputBorder(),
-              hintText: "Enter $label",
-              contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-            ),
+      String label, TextEditingController controller, IconData icon) {
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        child: TextField(
+          controller: controller,
+          style: const TextStyle(fontSize: 16),
+          decoration: InputDecoration(
+            labelText: label,
+            prefixIcon: Icon(icon, color: Colors.black),
+            border: InputBorder.none,
           ),
         ),
-      ],
+      ),
     );
   }
+
+
 }

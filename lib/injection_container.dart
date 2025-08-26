@@ -1,3 +1,4 @@
+import 'package:car_rental/domain/use_case/add_car_use_case.dart';
 import 'package:car_rental/presentation/bloc/car_bloc.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get_it/get_it.dart';
@@ -15,7 +16,8 @@ void initInjection(){
     getIt.registerLazySingleton<FirebaseCarDataSource>(() => FirebaseCarDataSource(firestore: getIt<FirebaseFirestore>()));
     getIt.registerLazySingleton<CarRepository>(() => CarRepositoryImpl(getIt<FirebaseCarDataSource>()));
     getIt.registerLazySingleton<GetCarsUseCase>(() => GetCarsUseCase(getIt<CarRepository>()));
-    getIt.registerFactory(()=> CarBloc(getCarsUseCase: getIt<GetCarsUseCase>()));
+    getIt.registerLazySingleton<AddCarUseCase>(() => AddCarUseCase(getIt<CarRepository>()));
+    getIt.registerFactory(()=> CarBloc(getCarsUseCase: getIt<GetCarsUseCase>(), addCarUseCase: getIt<AddCarUseCase>()));
   } catch (e) {
     // TODO
   }
